@@ -80,6 +80,7 @@ name = "async-graphql-dynamic-extend"
 version = "0.1.0"
 dependencies = [
  "async-graphql",
+ "regex",
  "tokio",
 ]
 

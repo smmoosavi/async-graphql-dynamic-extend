@@ -1,20 +1,50 @@
 use async_graphql::dynamic;
 use async_graphql::dynamic::SchemaBuilder;
-use async_graphql::indexmap::IndexMap;
+use std::collections::{HashMap, VecDeque};
+
+pub trait Register {
+    fn register(registry: Registry) -> Registry;
+}
+
+pub trait ExtendObject {
+    type Target: Object;
+}
 
 pub trait Object {
     const NAME: &'static str;
     fn register(registry: Registry) -> Registry;
 }
 
+pub struct ExtendContext {
+    extend: String,
+    field: String,
+}
+
+struct PendingExtends {
+    name: String,
+    map: Box<dyn FnOnce(dynamic::Object) -> dynamic::Object>,
+    ctx: ExtendContext,
+}
+
+impl ExtendContext {
+    pub fn new(extend: &str, field: &str) -> Self {
+        Self {
+            extend: extend.to_string(),
+            field: field.to_string(),
+        }
+    }
+}
+
 pub struct Registry {
-    types: IndexMap<String, dynamic::Object>,
+    types: HashMap<String, dynamic::Object>,
+    pending_extends: VecDeque<PendingExtends>,
 }
 
 impl Registry {
     pub fn new() -> Self {
         Self {
-            types: IndexMap::new(),
+            types: Default::default(),
+            pending_extends: Default::default(),
         }
     }
     pub fn register_object(mut self, object: dynamic::Object) -> Self {
@@ -22,7 +52,58 @@ impl Registry {
         self
     }
 
-    pub fn build_schema(self, schema_builder: SchemaBuilder) -> SchemaBuilder {
+    pub fn update_object<F>(mut self, name: &str, f: F, ctx: ExtendContext) -> Self
+    where
+        F: FnOnce(dynamic::Object) -> dynamic::Object + 'static,
+    {
+        self.pending_extends.push_back(PendingExtends {
+            name: name.to_string(),
+            map: Box::new(f),
+            ctx,
+        });
+        self
+    }
+
+    fn apply_pending(&mut self) {
+        loop {
+            if self.pending_extends.is_empty() {
+                break;
+            }
+            let mut changed = false;
+            loop {
+                let pending = match self.pending_extends.pop_front() {
+                    Some(v) => v,
+                    None => break,
+                };
+                let PendingExtends { name, map: f, ctx } = pending;
+                if let Some(object) = self.types.remove(&name) {
+                    let object = f(object);
+                    self.types.insert(name, object);
+                    changed = true;
+                } else {
+                    self.pending_extends
+                        .push_back(PendingExtends { name, map: f, ctx });
+                }
+            }
+            if !changed {
+                let keys = self
+                    .pending_extends
+                    .iter()
+                    .map(|p| {
+                        format!(
+                            "Can't find {} when defining {} in {}",
+                            p.name, p.ctx.field, p.ctx.extend
+                        )
+                    })
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                panic!("Can't find object: {:?}", keys);
+            }
+        }
+    }
+
+    pub fn build_schema(mut self, schema_builder: SchemaBuilder) -> SchemaBuilder {
+        self.apply_pending();
         self.types
             .into_iter()
             .fold(schema_builder, |schema_builder, (_, object)| {

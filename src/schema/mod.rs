@@ -1,3 +1,4 @@
+pub mod extend_hello;
 pub mod extend_object;
 pub mod hello;
 pub mod inject_field;

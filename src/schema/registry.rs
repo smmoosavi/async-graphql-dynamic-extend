@@ -10,6 +10,10 @@ pub trait InjectField {
     type Target: Object;
 }
 
+pub trait ExtendObject {
+    type Target: Object;
+}
+
 pub trait Object {
     const NAME: &'static str;
 }
@@ -36,6 +40,7 @@ impl InjectContext {
 
 pub struct Registry {
     types: HashMap<String, dynamic::Object>,
+    extend_types: Vec<dynamic::Object>,
     pending_injections: VecDeque<PendingInjection>,
 }
 
@@ -43,6 +48,7 @@ impl Registry {
     pub fn new() -> Self {
         Self {
             types: Default::default(),
+            extend_types: Default::default(),
             pending_injections: Default::default(),
         }
     }
@@ -51,6 +57,10 @@ impl Registry {
     }
     pub fn register_object(mut self, object: dynamic::Object) -> Self {
         self.types.insert(object.type_name().to_string(), object);
+        self
+    }
+    pub fn register_extend_object(mut self, object: dynamic::Object) -> Self {
+        self.extend_types.push(object);
         self
     }
 
@@ -106,9 +116,15 @@ impl Registry {
 
     pub fn build_schema(mut self, schema_builder: SchemaBuilder) -> SchemaBuilder {
         self.apply_pending();
-        self.types
+        let schema_builder = self
+            .types
             .into_iter()
             .fold(schema_builder, |schema_builder, (_, object)| {
+                schema_builder.register(object)
+            });
+        self.extend_types
+            .into_iter()
+            .fold(schema_builder, |schema_builder, object| {
                 schema_builder.register(object)
             })
     }

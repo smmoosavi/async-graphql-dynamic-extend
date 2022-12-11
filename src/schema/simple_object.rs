@@ -3,21 +3,34 @@ use async_graphql::dynamic;
 use async_graphql::dynamic::FieldValue;
 
 // user
+
+// mark as root
+// mark as object
 struct Query {
     user: User,
 }
 
+// mark as object
 struct User {
     id: String,
     name: String,
     avatar: Option<Image>,
 }
 
+// mark as object
 struct Image {
     url: String,
 }
 
 // generated
+struct Root(Query);
+//deref
+impl std::ops::Deref for Root {
+    type Target = Query;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 impl Object for Query {
     const NAME: &'static str = "Query";
@@ -29,7 +42,10 @@ impl Object for Query {
         let user_field =
             dynamic::Field::new("user", dynamic::TypeRef::named_nn(User::NAME), |ctx| {
                 dynamic::FieldFuture::new(async move {
-                    let parent = ctx.parent_value.try_downcast_ref::<Self>()?;
+                    // todo: feature request for execute with root
+                    // special case because Query is marked as root
+                    let parent = ctx.data::<Root>()?;
+                    // use borrowed_any because Image is not value
                     Ok(Some(FieldValue::borrowed_any(parent.resolve_user())))
                 })
             });
@@ -59,7 +75,7 @@ impl Object for User {
             |ctx| {
                 dynamic::FieldFuture::new(async move {
                     let parent = ctx.parent_value.try_downcast_ref::<Self>()?;
-                    Ok(Some(FieldValue::borrowed_any(parent.resolve_id())))
+                    Ok(Some(FieldValue::value(parent.resolve_id())))
                 })
             },
         );
@@ -72,7 +88,8 @@ impl Object for User {
             |ctx| {
                 dynamic::FieldFuture::new(async move {
                     let parent = ctx.parent_value.try_downcast_ref::<Self>()?;
-                    Ok(Some(FieldValue::borrowed_any(parent.resolve_name())))
+                    // use value because it's a String
+                    Ok(Some(FieldValue::value(parent.resolve_name())))
                 })
             },
         );
@@ -83,7 +100,9 @@ impl Object for User {
             dynamic::Field::new("avatar", dynamic::TypeRef::named(Image::NAME), |ctx| {
                 dynamic::FieldFuture::new(async move {
                     let parent = ctx.parent_value.try_downcast_ref::<Self>()?;
-                    Ok(Some(FieldValue::borrowed_any(parent.resolve_avatar())))
+                    // use map because avatar is optional
+                    // use borrowed_any because Image is not value
+                    Ok(parent.resolve_avatar().map(FieldValue::borrowed_any))
                 })
             });
         let object_type = object_type.field(avatar_field);
@@ -94,14 +113,14 @@ impl Object for User {
 }
 
 impl User {
-    fn resolve_id(&self) -> &String {
-        &self.id
+    fn resolve_id(&self) -> String {
+        self.id.to_string()
     }
-    fn resolve_name(&self) -> &String {
-        &self.name
+    fn resolve_name(&self) -> String {
+        self.name.to_string()
     }
-    fn resolve_avatar(&self) -> &Option<Image> {
-        &self.avatar
+    fn resolve_avatar(&self) -> Option<&Image> {
+        self.avatar.as_ref()
     }
 }
 
@@ -118,7 +137,7 @@ impl Object for Image {
             |ctx| {
                 dynamic::FieldFuture::new(async move {
                     let parent = ctx.parent_value.try_downcast_ref::<Self>()?;
-                    Ok(Some(FieldValue::borrowed_any(parent.resolve_url())))
+                    Ok(Some(FieldValue::value(parent.resolve_url())))
                 })
             },
         );
@@ -130,9 +149,18 @@ impl Object for Image {
 }
 
 impl Image {
-    fn resolve_url(&self) -> &String {
-        &self.url
+    fn resolve_url(&self) -> String {
+        self.url.to_string()
     }
+}
+
+pub fn create_schema() -> dynamic::Schema {
+    let registry = Registry::new();
+    let schema = dynamic::Schema::build(Query::NAME, None, None);
+    let registry = Query::register(registry);
+    let registry = User::register(registry);
+    let registry = Image::register(registry);
+    registry.build_schema(schema).finish().unwrap()
 }
 
 // tests
@@ -144,12 +172,7 @@ mod tests {
 
     #[test]
     fn test() {
-        let registry = Registry::new();
-        let schema = dynamic::Schema::build(Query::NAME, None, None);
-        let registry = Query::register(registry);
-        let registry = User::register(registry);
-        let registry = Image::register(registry);
-        let schema = registry.build_schema(schema).finish().unwrap();
+        let schema = create_schema();
         let sdl = schema.sdl();
         assert_eq!(
             normalize_schema(&sdl),
@@ -171,6 +194,43 @@ mod tests {
                 }
                 "#
             ),
+        );
+    }
+    #[tokio::test]
+    async fn test_query() {
+        let schema = create_schema();
+        let query = r#"
+        query {
+            user {
+                id
+                name
+                avatar {
+                    url
+                }
+            }
+        }
+        "#;
+        let user = User {
+            id: "1".to_string(),
+            name: "John".to_string(),
+            avatar: Some(Image {
+                url: "https://example.com/avatar.png".to_string(),
+            }),
+        };
+        let req = async_graphql::Request::new(query).data(Root(Query { user }));
+        let res = schema.execute(req).await;
+        let data = res.data.into_json().unwrap();
+        assert_eq!(
+            data,
+            serde_json::json!({
+                "user": {
+                    "id": "1",
+                    "name": "John",
+                    "avatar": {
+                        "url": "https://example.com/avatar.png",
+                    }
+                }
+            })
         );
     }
 }

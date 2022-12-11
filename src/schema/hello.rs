@@ -17,6 +17,7 @@ pub fn create_schema() -> Schema {
 mod tests {
     use super::*;
     use crate::schema_utils::normalize_schema;
+    use async_graphql::Request;
 
     #[tokio::test]
     async fn test_schema() {
@@ -30,6 +31,17 @@ mod tests {
                 schema { query: Query }
 "
             )
+        );
+    }
+
+    #[tokio::test]
+    async fn test_query() {
+        let schema = create_schema();
+        let query = r#"{ hello }"#;
+        let res = schema.execute(Request::new(query)).await;
+        assert_eq!(
+            res.data.into_json().unwrap(),
+            serde_json::json!({ "hello": "world" })
         );
     }
 }

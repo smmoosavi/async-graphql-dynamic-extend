@@ -1,3 +1,5 @@
+mod static_schema;
+
 use crate::schema::registry::{Object, Registry};
 use async_graphql::dynamic;
 use async_graphql::dynamic::FieldValue;
@@ -75,7 +77,7 @@ impl Object for User {
             |ctx| {
                 dynamic::FieldFuture::new(async move {
                     let parent = ctx.parent_value.try_downcast_ref::<Self>()?;
-                    Ok(Some(FieldValue::value(parent.resolve_id())))
+                    Ok(Some(FieldValue::value(parent.resolve_id().to_owned())))
                 })
             },
         );
@@ -89,7 +91,7 @@ impl Object for User {
                 dynamic::FieldFuture::new(async move {
                     let parent = ctx.parent_value.try_downcast_ref::<Self>()?;
                     // use value because it's a String
-                    Ok(Some(FieldValue::value(parent.resolve_name())))
+                    Ok(Some(FieldValue::value(parent.resolve_name().to_owned())))
                 })
             },
         );
@@ -102,7 +104,10 @@ impl Object for User {
                     let parent = ctx.parent_value.try_downcast_ref::<Self>()?;
                     // use map because avatar is optional
                     // use borrowed_any because Image is not value
-                    Ok(parent.resolve_avatar().map(FieldValue::borrowed_any))
+                    Ok(parent
+                        .resolve_avatar()
+                        .as_ref()
+                        .map(FieldValue::borrowed_any))
                 })
             });
         let object_type = object_type.field(avatar_field);
@@ -113,14 +118,14 @@ impl Object for User {
 }
 
 impl User {
-    fn resolve_id(&self) -> String {
-        self.id.to_string()
+    fn resolve_id(&self) -> &String {
+        &self.id
     }
-    fn resolve_name(&self) -> String {
-        self.name.to_string()
+    fn resolve_name(&self) -> &String {
+        &self.name
     }
-    fn resolve_avatar(&self) -> Option<&Image> {
-        self.avatar.as_ref()
+    fn resolve_avatar(&self) -> &Option<Image> {
+        &self.avatar
     }
 }
 
@@ -137,7 +142,7 @@ impl Object for Image {
             |ctx| {
                 dynamic::FieldFuture::new(async move {
                     let parent = ctx.parent_value.try_downcast_ref::<Self>()?;
-                    Ok(Some(FieldValue::value(parent.resolve_url())))
+                    Ok(Some(FieldValue::value(parent.resolve_url().to_owned())))
                 })
             },
         );
@@ -149,8 +154,8 @@ impl Object for Image {
 }
 
 impl Image {
-    fn resolve_url(&self) -> String {
-        self.url.to_string()
+    fn resolve_url(&self) -> &String {
+        &self.url
     }
 }
 

@@ -6,7 +6,7 @@ pub trait Register {
     fn register(registry: Registry) -> Registry;
 }
 
-pub trait ExtendObject {
+pub trait InjectField {
     type Target: Object;
 }
 
@@ -14,21 +14,21 @@ pub trait Object {
     const NAME: &'static str;
 }
 
-pub struct ExtendContext {
-    extend: String,
+pub struct InjectContext {
+    definition: String,
     field: String,
 }
 
-struct PendingExtends {
+struct PendingInjection {
     name: String,
     map: Box<dyn FnOnce(dynamic::Object) -> dynamic::Object>,
-    ctx: ExtendContext,
+    ctx: InjectContext,
 }
 
-impl ExtendContext {
-    pub fn new(extend: &str, field: &str) -> Self {
+impl InjectContext {
+    pub fn new(definition: &str, field: &str) -> Self {
         Self {
-            extend: extend.to_string(),
+            definition: definition.to_string(),
             field: field.to_string(),
         }
     }
@@ -36,14 +36,14 @@ impl ExtendContext {
 
 pub struct Registry {
     types: HashMap<String, dynamic::Object>,
-    pending_extends: VecDeque<PendingExtends>,
+    pending_injections: VecDeque<PendingInjection>,
 }
 
 impl Registry {
     pub fn new() -> Self {
         Self {
             types: Default::default(),
-            pending_extends: Default::default(),
+            pending_injections: Default::default(),
         }
     }
     pub fn register<T: Register>(self) -> Self {
@@ -54,11 +54,11 @@ impl Registry {
         self
     }
 
-    pub fn update_object<F>(mut self, name: &str, f: F, ctx: ExtendContext) -> Self
+    pub fn update_object<F>(mut self, name: &str, f: F, ctx: InjectContext) -> Self
     where
         F: FnOnce(dynamic::Object) -> dynamic::Object + 'static,
     {
-        self.pending_extends.push_back(PendingExtends {
+        self.pending_injections.push_back(PendingInjection {
             name: name.to_string(),
             map: Box::new(f),
             ctx,
@@ -68,33 +68,33 @@ impl Registry {
 
     fn apply_pending(&mut self) {
         loop {
-            if self.pending_extends.is_empty() {
+            if self.pending_injections.is_empty() {
                 break;
             }
             let mut changed = false;
             loop {
-                let pending = match self.pending_extends.pop_front() {
+                let pending = match self.pending_injections.pop_front() {
                     Some(v) => v,
                     None => break,
                 };
-                let PendingExtends { name, map: f, ctx } = pending;
+                let PendingInjection { name, map: f, ctx } = pending;
                 if let Some(object) = self.types.remove(&name) {
                     let object = f(object);
                     self.types.insert(name, object);
                     changed = true;
                 } else {
-                    self.pending_extends
-                        .push_back(PendingExtends { name, map: f, ctx });
+                    self.pending_injections
+                        .push_back(PendingInjection { name, map: f, ctx });
                 }
             }
             if !changed {
                 let keys = self
-                    .pending_extends
+                    .pending_injections
                     .iter()
                     .map(|p| {
                         format!(
                             "Can't find {} when defining {} in {}",
-                            p.name, p.ctx.field, p.ctx.extend
+                            p.name, p.ctx.field, p.ctx.definition
                         )
                     })
                     .collect::<Vec<_>>()

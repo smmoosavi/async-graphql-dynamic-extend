@@ -1,6 +1,6 @@
 // user
 
-use crate::schema::registry::{ExtendContext, ExtendObject, Object, Register, Registry};
+use crate::schema::registry::{InjectContext, InjectField, Object, Register, Registry};
 use async_graphql::dynamic::FieldValue;
 use async_graphql::{dynamic, Context};
 
@@ -17,7 +17,7 @@ struct User {
 
 struct MeQuery;
 
-impl ExtendObject for MeQuery {
+impl InjectField for MeQuery {
     type Target = Query;
 }
 
@@ -78,9 +78,9 @@ impl Register for MeQuery {
             })
         });
         registry.update_object(
-            <<Self as ExtendObject>::Target as Object>::NAME,
+            <<Self as InjectField>::Target as Object>::NAME,
             |query_object| query_object.field(me_field),
-            ExtendContext::new("MeQuery", "me"),
+            InjectContext::new("MeQuery", "me"),
         )
     }
 }

@@ -15,13 +15,13 @@ struct User {
     avatar: Option<Image>,
 }
 
-struct UserQuery;
+struct MeQuery;
 
-impl ExtendObject for UserQuery {
+impl ExtendObject for MeQuery {
     type Target = Query;
 }
 
-impl UserQuery {
+impl MeQuery {
     // mark Query as Target
     async fn resolve_me(_parent: &Query, _ctx: &Context<'_>) -> Option<User> {
         Some(User {
@@ -52,6 +52,8 @@ impl std::ops::Deref for Root {
 
 impl Object for Query {
     const NAME: &'static str = "Query";
+}
+impl Register for Query {
     fn register(registry: Registry) -> Registry {
         // define Query object
         let query_object = dynamic::Object::new("Query");
@@ -61,7 +63,7 @@ impl Object for Query {
     }
 }
 
-impl Register for UserQuery {
+impl Register for MeQuery {
     fn register(registry: Registry) -> Registry {
         // define me field
         let me_field = dynamic::Field::new("me", dynamic::TypeRef::named(User::NAME), |ctx| {
@@ -78,13 +80,15 @@ impl Register for UserQuery {
         registry.update_object(
             <<Self as ExtendObject>::Target as Object>::NAME,
             |query_object| query_object.field(me_field),
-            ExtendContext::new("UserQuery", "me"),
+            ExtendContext::new("MeQuery", "me"),
         )
     }
 }
 
 impl Object for User {
     const NAME: &'static str = "User";
+}
+impl Register for User {
     fn register(registry: Registry) -> Registry {
         // define User object
         let object_type = dynamic::Object::new(Self::NAME);
@@ -150,6 +154,9 @@ impl User {
 
 impl Object for Image {
     const NAME: &'static str = "Image";
+}
+
+impl Register for Image {
     fn register(registry: Registry) -> Registry {
         // define Image object
         let object_type = dynamic::Object::new(Self::NAME);
@@ -179,12 +186,12 @@ impl Image {
 }
 
 pub fn create_schema() -> dynamic::Schema {
-    let registry = Registry::new();
+    let registry = Registry::new()
+        .register::<Query>()
+        .register::<User>()
+        .register::<MeQuery>()
+        .register::<Image>();
     let schema = dynamic::Schema::build(Query::NAME, None, None);
-    let registry = Query::register(registry);
-    let registry = User::register(registry);
-    let registry = UserQuery::register(registry);
-    let registry = Image::register(registry);
     registry.build_schema(schema).finish().unwrap()
 }
 

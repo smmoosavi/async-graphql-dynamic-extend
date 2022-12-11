@@ -12,7 +12,6 @@ pub trait ExtendObject {
 
 pub trait Object {
     const NAME: &'static str;
-    fn register(registry: Registry) -> Registry;
 }
 
 pub struct ExtendContext {
@@ -46,6 +45,9 @@ impl Registry {
             types: Default::default(),
             pending_extends: Default::default(),
         }
+    }
+    pub fn register<T: Register>(self) -> Self {
+        T::register(self)
     }
     pub fn register_object(mut self, object: dynamic::Object) -> Self {
         self.types.insert(object.type_name().to_string(), object);

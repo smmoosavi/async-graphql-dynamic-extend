@@ -1,6 +1,6 @@
 mod static_schema;
 
-use crate::schema::registry::{Object, Registry};
+use crate::schema::registry::{Object, Register, Registry};
 use async_graphql::dynamic;
 use async_graphql::dynamic::FieldValue;
 
@@ -26,6 +26,7 @@ struct Image {
 
 // generated
 struct Root(Query);
+
 //deref
 impl std::ops::Deref for Root {
     type Target = Query;
@@ -36,6 +37,9 @@ impl std::ops::Deref for Root {
 
 impl Object for Query {
     const NAME: &'static str = "Query";
+}
+
+impl Register for Query {
     fn register(registry: Registry) -> Registry {
         // define Query object
         let query_object = dynamic::Object::new("Query");
@@ -66,6 +70,9 @@ impl Query {
 
 impl Object for User {
     const NAME: &'static str = "User";
+}
+
+impl Register for User {
     fn register(registry: Registry) -> Registry {
         // define User object
         let object_type = dynamic::Object::new(Self::NAME);
@@ -131,6 +138,9 @@ impl User {
 
 impl Object for Image {
     const NAME: &'static str = "Image";
+}
+
+impl Register for Image {
     fn register(registry: Registry) -> Registry {
         // define Image object
         let object_type = dynamic::Object::new(Self::NAME);
@@ -160,11 +170,12 @@ impl Image {
 }
 
 pub fn create_schema() -> dynamic::Schema {
-    let registry = Registry::new();
+    let registry = Registry::new()
+        .register::<Query>()
+        .register::<User>()
+        .register::<Image>();
+
     let schema = dynamic::Schema::build(Query::NAME, None, None);
-    let registry = Query::register(registry);
-    let registry = User::register(registry);
-    let registry = Image::register(registry);
     registry.build_schema(schema).finish().unwrap()
 }
 
@@ -201,6 +212,7 @@ mod tests {
             ),
         );
     }
+
     #[tokio::test]
     async fn test_query() {
         let schema = create_schema();

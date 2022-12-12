@@ -1,6 +1,6 @@
 // user
-
 use crate::schema::registry::{InjectContext, InjectField, Object, Register, Registry};
+use async_graphql::dynamic::DynamicRequestExt;
 use async_graphql::dynamic::FieldValue;
 use async_graphql::{dynamic, Context};
 
@@ -70,7 +70,9 @@ impl Register for MeQuery {
             dynamic::FieldFuture::new(async move {
                 // todo: feature request for execute with root
                 // special case because Query is marked as root
-                let parent = ctx.data::<Root>()?;
+                let parent = ctx
+                    .parent_value
+                    .try_downcast_ref::<<Self as InjectField>::Target>()?;
 
                 Ok(Self::resolve_me(parent, &ctx)
                     .await
@@ -240,7 +242,7 @@ mod tests {
                 }
             }
         "#;
-        let req = async_graphql::Request::new(query).data(Root(Query));
+        let req = async_graphql::Request::new(query).root_value(FieldValue::owned_any(Query));
         let res = schema.execute(req).await;
         let data = res.data.into_json().unwrap();
         assert_eq!(

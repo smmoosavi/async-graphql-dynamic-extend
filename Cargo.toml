@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-async-graphql = { version = "5", features = ["dynamic-schema"] }
+async-graphql = { path = "../async-graphql", features = ["dynamic-schema"] }
 tokio = { version = "1", features = ["full"] }
 serde_json = "1"
 

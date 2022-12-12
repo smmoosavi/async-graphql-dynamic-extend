@@ -2,6 +2,7 @@ mod static_schema;
 
 use crate::schema::registry::{Object, Register, Registry};
 use async_graphql::dynamic;
+use async_graphql::dynamic::DynamicRequestExt;
 use async_graphql::dynamic::FieldValue;
 
 // user
@@ -48,9 +49,7 @@ impl Register for Query {
         let user_field =
             dynamic::Field::new("user", dynamic::TypeRef::named_nn(User::NAME), |ctx| {
                 dynamic::FieldFuture::new(async move {
-                    // todo: feature request for execute with root
-                    // special case because Query is marked as root
-                    let parent = ctx.data::<Root>()?;
+                    let parent = ctx.parent_value.try_downcast_ref::<Self>()?;
                     // use borrowed_any because Image is not value
                     Ok(Some(FieldValue::borrowed_any(parent.resolve_user())))
                 })
@@ -234,7 +233,8 @@ mod tests {
                 url: "https://example.com/avatar.png".to_string(),
             }),
         };
-        let req = async_graphql::Request::new(query).data(Root(Query { user }));
+        let req =
+            async_graphql::Request::new(query).root_value(FieldValue::owned_any(Query { user }));
         let res = schema.execute(req).await;
         let data = res.data.into_json().unwrap();
         assert_eq!(

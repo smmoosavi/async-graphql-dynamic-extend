@@ -1,5 +1,5 @@
 // user
-use crate::schema::registry::{InjectContext, InjectField, Object, Register, Registry};
+use crate::schema::registry::{ExpandObject, ExpandObjectContext, Object, Register, Registry};
 use async_graphql::dynamic::DynamicRequestExt;
 use async_graphql::dynamic::FieldValue;
 use async_graphql::{dynamic, Context};
@@ -17,7 +17,7 @@ struct User {
 
 struct MeQuery;
 
-impl InjectField for MeQuery {
+impl ExpandObject for MeQuery {
     type Target = Query;
 }
 
@@ -72,7 +72,7 @@ impl Register for MeQuery {
                 // special case because Query is marked as root
                 let parent = ctx
                     .parent_value
-                    .try_downcast_ref::<<Self as InjectField>::Target>()?;
+                    .try_downcast_ref::<<Self as ExpandObject>::Target>()?;
 
                 Ok(Self::resolve_me(parent, &ctx)
                     .await
@@ -80,9 +80,9 @@ impl Register for MeQuery {
             })
         });
         registry.update_object(
-            <<Self as InjectField>::Target as Object>::NAME,
+            <<Self as ExpandObject>::Target as Object>::NAME,
             |query_object| query_object.field(me_field),
-            InjectContext::new("MeQuery", "me"),
+            ExpandObjectContext::new("MeQuery", "me"),
         )
     }
 }

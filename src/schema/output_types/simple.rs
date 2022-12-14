@@ -46,7 +46,7 @@ impl Register for Query {
         let foo_field = dynamic::Field::new("foo", dynamic::TypeRef::named_nn(Foo::NAME), |ctx| {
             dynamic::FieldFuture::new(async move {
                 let parent = ctx.parent_value.try_downcast_ref::<Self>()?;
-                let value = parent.resolve_foo();
+                let value = parent.resolve_foo().await;
                 value.resolve(&ctx)
             })
         });
@@ -58,7 +58,7 @@ impl Register for Query {
 }
 
 impl Query {
-    fn resolve_foo(&self) -> &Foo {
+    async fn resolve_foo(&self) -> &Foo {
         &self.foo
     }
 }
@@ -81,7 +81,7 @@ impl Register for Bar {
             |ctx| {
                 dynamic::FieldFuture::new(async move {
                     let parent = ctx.parent_value.try_downcast_ref::<Self>()?;
-                    let value = parent.resolve_value();
+                    let value = parent.resolve_value().await;
                     value.resolve(&ctx)
                 })
             },
@@ -94,7 +94,7 @@ impl Register for Bar {
 }
 
 impl Bar {
-    fn resolve_value(&self) -> &String {
+    async fn resolve_value(&self) -> &String {
         &self.value
     }
 }
@@ -114,7 +114,7 @@ impl Register for Foo {
         let bar_field = dynamic::Field::new("bar", dynamic::TypeRef::named_nn(Bar::NAME), |ctx| {
             dynamic::FieldFuture::new(async move {
                 let parent = ctx.parent_value.try_downcast_ref::<Self>()?;
-                let value = parent.resolve_bar();
+                let value = parent.resolve_bar().await;
                 value.resolve(&ctx)
             })
         });
@@ -127,7 +127,7 @@ impl Register for Foo {
             |ctx| {
                 dynamic::FieldFuture::new(async move {
                     let parent = ctx.parent_value.try_downcast_ref::<Self>()?;
-                    let value = parent.resolve_the_string();
+                    let value = parent.resolve_the_string().await;
                     value.resolve(&ctx)
                 })
             },
@@ -141,7 +141,7 @@ impl Register for Foo {
             |ctx| {
                 dynamic::FieldFuture::new(async move {
                     let parent = ctx.parent_value.try_downcast_ref::<Self>()?;
-                    let value = parent.resolve_the_str();
+                    let value = parent.resolve_the_str().await;
                     value.resolve(&ctx)
                 })
             },
@@ -155,7 +155,7 @@ impl Register for Foo {
             |ctx| {
                 dynamic::FieldFuture::new(async move {
                     let parent = ctx.parent_value.try_downcast_ref::<Self>()?;
-                    let value = parent.resolve_the_i32();
+                    let value = parent.resolve_the_i32().await;
                     value.resolve(&ctx)
                 })
             },
@@ -170,7 +170,7 @@ impl Register for Foo {
             |ctx| {
                 dynamic::FieldFuture::new(async move {
                     let parent = ctx.parent_value.try_downcast_ref::<Self>()?;
-                    let value = parent.resolve_the_f32();
+                    let value = parent.resolve_the_f32().await;
                     value.resolve(&ctx)
                 })
             },
@@ -184,7 +184,7 @@ impl Register for Foo {
             |ctx| {
                 dynamic::FieldFuture::new(async move {
                     let parent = ctx.parent_value.try_downcast_ref::<Self>()?;
-                    let value = parent.resolve_the_bool();
+                    let value = parent.resolve_the_bool().await;
                     value.resolve(&ctx)
                 })
             },
@@ -198,7 +198,7 @@ impl Register for Foo {
             |ctx| {
                 dynamic::FieldFuture::new(async move {
                     let parent = ctx.parent_value.try_downcast_ref::<Self>()?;
-                    let value = parent.resolve_the_id();
+                    let value = parent.resolve_the_id().await;
                     value.resolve(&ctx)
                 })
             },
@@ -212,25 +212,25 @@ impl Register for Foo {
 }
 
 impl Foo {
-    fn resolve_bar(&self) -> &Bar {
+    async fn resolve_bar(&self) -> &Bar {
         &self.bar
     }
-    fn resolve_the_string(&self) -> &String {
+    async fn resolve_the_string(&self) -> &String {
         &self.the_string
     }
-    fn resolve_the_str(&self) -> &'static str {
+    async fn resolve_the_str(&self) -> &'static str {
         self.the_str
     }
-    fn resolve_the_i32(&self) -> &i32 {
+    async fn resolve_the_i32(&self) -> &i32 {
         &self.the_i32
     }
-    fn resolve_the_f32(&self) -> &f32 {
+    async fn resolve_the_f32(&self) -> &f32 {
         &self.the_f32
     }
-    fn resolve_the_bool(&self) -> &bool {
+    async fn resolve_the_bool(&self) -> &bool {
         &self.the_bool
     }
-    fn resolve_the_id(&self) -> &ID {
+    async fn resolve_the_id(&self) -> &ID {
         &self.the_id
     }
 }

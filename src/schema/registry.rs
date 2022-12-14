@@ -20,6 +20,10 @@ pub trait Object {
     const NAME: &'static str;
 }
 
+pub trait InputObject {
+    const NAME: &'static str;
+}
+
 pub struct ExpandObjectContext {
     definition: String,
     field: String,
@@ -43,6 +47,7 @@ impl ExpandObjectContext {
 pub struct Registry {
     types: HashMap<String, dynamic::Object>,
     extend_types: Vec<dynamic::Object>,
+    input_types: HashMap<String, dynamic::InputObject>,
     pending_expand_objects: VecDeque<PendingExpandObject>,
 }
 
@@ -51,6 +56,7 @@ impl Registry {
         Self {
             types: Default::default(),
             extend_types: Default::default(),
+            input_types: Default::default(),
             pending_expand_objects: Default::default(),
         }
     }
@@ -63,6 +69,11 @@ impl Registry {
     }
     pub fn register_extend_object(mut self, object: dynamic::Object) -> Self {
         self.extend_types.push(object);
+        self
+    }
+
+    pub fn register_input_object(mut self, object: dynamic::InputObject) -> Self {
+        self.input_types.insert(object.type_name().to_string(), object);
         self
     }
 
@@ -121,6 +132,12 @@ impl Registry {
 
     pub fn build_schema(mut self, schema_builder: SchemaBuilder) -> SchemaBuilder {
         self.apply_pending();
+        let schema_builder = self
+            .input_types
+            .into_iter()
+            .fold(schema_builder, |schema_builder, (_, object)| {
+                schema_builder.register(object)
+            });
         let schema_builder = self
             .types
             .into_iter()

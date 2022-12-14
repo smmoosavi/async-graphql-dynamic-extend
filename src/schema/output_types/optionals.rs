@@ -47,7 +47,7 @@ impl Register for Query {
             dynamic::FieldFuture::new(async move {
                 let parent = ctx.parent_value.try_downcast_ref::<Self>()?;
                 let value = parent.resolve_foo().await;
-                OutputValue::resolve(value, &ctx)
+                OutputValue::resolve_ref(value, &ctx)
             })
         });
         let query_object = query_object.field(foo_field);
@@ -63,8 +63,12 @@ impl Query {
     }
 }
 
-impl OutputValue for Bar {
-    fn resolve(&self, _ctx: &Context) -> async_graphql::Result<Option<FieldValue>> {
+impl<'a> OutputValue<'a> for Bar {
+    fn resolve(self, _ctx: &Context) -> async_graphql::Result<Option<FieldValue<'a>>> {
+        Ok(Some(FieldValue::owned_any(self)))
+    }
+
+    fn resolve_ref(&'a self, _ctx: &Context) -> async_graphql::Result<Option<FieldValue<'a>>> {
         Ok(Some(FieldValue::borrowed_any(self)))
     }
 }
@@ -82,7 +86,7 @@ impl Register for Bar {
                 dynamic::FieldFuture::new(async move {
                     let parent = ctx.parent_value.try_downcast_ref::<Self>()?;
                     let value = parent.resolve_value().await;
-                    OutputValue::resolve(value, &ctx)
+                    OutputValue::resolve_ref(value, &ctx)
                 })
             },
         );
@@ -99,8 +103,12 @@ impl Bar {
     }
 }
 
-impl OutputValue for Foo {
-    fn resolve(&self, _ctx: &Context) -> async_graphql::Result<Option<FieldValue>> {
+impl<'a> OutputValue<'a> for Foo {
+    fn resolve(self, _ctx: &Context) -> async_graphql::Result<Option<FieldValue<'a>>> {
+        Ok(Some(FieldValue::owned_any(self)))
+    }
+
+    fn resolve_ref(&'a self, _ctx: &Context) -> async_graphql::Result<Option<FieldValue<'a>>> {
         Ok(Some(FieldValue::borrowed_any(self)))
     }
 }
@@ -115,7 +123,7 @@ impl Register for Foo {
             dynamic::FieldFuture::new(async move {
                 let parent = ctx.parent_value.try_downcast_ref::<Self>()?;
                 let value = parent.resolve_bar().await;
-                OutputValue::resolve(value, &ctx)
+                OutputValue::resolve_ref(value, &ctx)
             })
         });
         let object_type = object_type.field(bar_field);
@@ -128,7 +136,7 @@ impl Register for Foo {
                 dynamic::FieldFuture::new(async move {
                     let parent = ctx.parent_value.try_downcast_ref::<Self>()?;
                     let value = parent.resolve_the_string().await;
-                    OutputValue::resolve(value, &ctx)
+                    OutputValue::resolve_ref(value, &ctx)
                 })
             },
         );
@@ -142,7 +150,7 @@ impl Register for Foo {
                 dynamic::FieldFuture::new(async move {
                     let parent = ctx.parent_value.try_downcast_ref::<Self>()?;
                     let value = parent.resolve_the_str().await;
-                    OutputValue::resolve(value, &ctx)
+                    OutputValue::resolve_ref(value, &ctx)
                 })
             },
         );
@@ -156,7 +164,7 @@ impl Register for Foo {
                 dynamic::FieldFuture::new(async move {
                     let parent = ctx.parent_value.try_downcast_ref::<Self>()?;
                     let value = parent.resolve_the_i32().await;
-                    OutputValue::resolve(value, &ctx)
+                    OutputValue::resolve_ref(value, &ctx)
                 })
             },
         );
@@ -171,7 +179,7 @@ impl Register for Foo {
                 dynamic::FieldFuture::new(async move {
                     let parent = ctx.parent_value.try_downcast_ref::<Self>()?;
                     let value = parent.resolve_the_f32().await;
-                    OutputValue::resolve(value, &ctx)
+                    OutputValue::resolve_ref(value, &ctx)
                 })
             },
         );
@@ -185,7 +193,7 @@ impl Register for Foo {
                 dynamic::FieldFuture::new(async move {
                     let parent = ctx.parent_value.try_downcast_ref::<Self>()?;
                     let value = parent.resolve_the_bool().await;
-                    OutputValue::resolve(value, &ctx)
+                    OutputValue::resolve_ref(value, &ctx)
                 })
             },
         );
@@ -199,7 +207,7 @@ impl Register for Foo {
                 dynamic::FieldFuture::new(async move {
                     let parent = ctx.parent_value.try_downcast_ref::<Self>()?;
                     let value = parent.resolve_the_id().await;
-                    OutputValue::resolve(value, &ctx)
+                    OutputValue::resolve_ref(value, &ctx)
                 })
             },
         );

@@ -1,20 +1,25 @@
 use async_graphql::dynamic::FieldValue;
 use async_graphql::Context;
 
-pub trait OutputValue<'a> {
-    fn resolve(self, ctx: &Context) -> async_graphql::Result<Option<FieldValue<'a>>>;
+pub trait ResolveOwned<'a> {
+    fn resolve_owned(self, ctx: &Context) -> async_graphql::Result<Option<FieldValue<'a>>>;
+}
+
+pub trait ResolveRef<'a> {
     fn resolve_ref(&'a self, ctx: &Context) -> async_graphql::Result<Option<FieldValue<'a>>>;
 }
 
-impl<'a, T: OutputValue<'a> + Sync> OutputValue<'a> for Option<T> {
+impl<'a, T: ResolveOwned<'a> + Sync> ResolveOwned<'a> for Option<T> {
     #[inline]
-    fn resolve(self, ctx: &Context) -> async_graphql::Result<Option<FieldValue<'a>>> {
+    fn resolve_owned(self, ctx: &Context) -> async_graphql::Result<Option<FieldValue<'a>>> {
         match self {
             None => Ok(None),
-            Some(value) => value.resolve(ctx),
+            Some(value) => value.resolve_owned(ctx),
         }
     }
+}
 
+impl<'a, T: ResolveRef<'a> + Sync> ResolveRef<'a> for Option<T> {
     fn resolve_ref(&'a self, ctx: &Context) -> async_graphql::Result<Option<FieldValue<'a>>> {
         match self {
             None => Ok(None),
@@ -23,19 +28,25 @@ impl<'a, T: OutputValue<'a> + Sync> OutputValue<'a> for Option<T> {
     }
 }
 
-impl<'a, T, E> OutputValue<'a> for Result<T, E>
+impl<'a, T, E> ResolveOwned<'a> for Result<T, E>
 where
-    T: OutputValue<'a> + Sync,
-    E: Into<async_graphql::Error> + Send + Sync + Clone,
+    T: ResolveOwned<'a> + Sync,
+    E: Into<async_graphql::Error> + Send + Sync,
 {
     #[inline]
-    fn resolve(self, ctx: &Context) -> async_graphql::Result<Option<FieldValue<'a>>> {
+    fn resolve_owned(self, ctx: &Context) -> async_graphql::Result<Option<FieldValue<'a>>> {
         match self {
-            Ok(value) => value.resolve(ctx),
+            Ok(value) => value.resolve_owned(ctx),
             Err(err) => Err(err.into()),
         }
     }
+}
 
+impl<'a, T, E> ResolveRef<'a> for Result<T, E>
+where
+    T: ResolveRef<'a> + Sync,
+    E: Into<async_graphql::Error> + Send + Sync + Clone,
+{
     #[inline]
     fn resolve_ref(&'a self, ctx: &Context) -> async_graphql::Result<Option<FieldValue<'a>>> {
         match self {
@@ -45,12 +56,12 @@ where
     }
 }
 
-impl<'a, T: OutputValue<'a>> OutputValue<'a> for Vec<T> {
-    fn resolve(self, ctx: &Context) -> async_graphql::Result<Option<FieldValue<'a>>> {
+impl<'a, T: ResolveOwned<'a>> ResolveOwned<'a> for Vec<T> {
+    fn resolve_owned(self, ctx: &Context) -> async_graphql::Result<Option<FieldValue<'a>>> {
         let iter = self.into_iter();
         let items = iter.enumerate().map(|(index, item)| {
             let ctx_idx = ctx.with_index(index);
-            match item.resolve(&ctx_idx) {
+            match item.resolve_owned(&ctx_idx) {
                 Ok(Some(value)) => value,
                 Ok(None) => FieldValue::NULL,
                 Err(err) => {
@@ -62,6 +73,9 @@ impl<'a, T: OutputValue<'a>> OutputValue<'a> for Vec<T> {
         });
         Ok(Some(FieldValue::list(items)))
     }
+}
+
+impl<'a, T: ResolveRef<'a>> ResolveRef<'a> for Vec<T> {
     fn resolve_ref(&'a self, ctx: &Context) -> async_graphql::Result<Option<FieldValue<'a>>> {
         let iter = self.iter();
         let items = iter.enumerate().map(|(index, item)| {
@@ -80,22 +94,28 @@ impl<'a, T: OutputValue<'a>> OutputValue<'a> for Vec<T> {
     }
 }
 
-impl<'a> OutputValue<'a> for async_graphql::ID {
+impl<'a> ResolveOwned<'a> for async_graphql::ID {
     #[inline]
-    fn resolve(self, _ctx: &Context) -> async_graphql::Result<Option<FieldValue<'a>>> {
+    fn resolve_owned(self, _ctx: &Context) -> async_graphql::Result<Option<FieldValue<'a>>> {
         Ok(Some(FieldValue::value(self.0)))
     }
+}
+
+impl<'a> ResolveRef<'a> for async_graphql::ID {
     #[inline]
     fn resolve_ref(&'a self, _ctx: &Context) -> async_graphql::Result<Option<FieldValue<'a>>> {
         Ok(Some(FieldValue::value(self.0.to_owned())))
     }
 }
 
-impl<'a> OutputValue<'a> for &str {
+impl<'a> ResolveOwned<'a> for &str {
     #[inline]
-    fn resolve(self, _ctx: &Context) -> async_graphql::Result<Option<FieldValue<'a>>> {
+    fn resolve_owned(self, _ctx: &Context) -> async_graphql::Result<Option<FieldValue<'a>>> {
         Ok(Some(FieldValue::value(self.to_string())))
     }
+}
+
+impl<'a> ResolveRef<'a> for &str {
     #[inline]
     fn resolve_ref(&'a self, _ctx: &Context) -> async_graphql::Result<Option<FieldValue<'a>>> {
         Ok(Some(FieldValue::value(self.to_owned())))
@@ -105,11 +125,13 @@ impl<'a> OutputValue<'a> for &str {
 macro_rules! output_value {
     ($($ty:ident),*) => {
         $(
-            impl <'a> OutputValue<'a> for $ty {
+            impl <'a> ResolveOwned<'a> for $ty {
                 #[inline]
-                fn resolve(self, _ctx: &Context) -> async_graphql::Result<Option<FieldValue<'a>>> {
+                fn resolve_owned(self, _ctx: &Context) -> async_graphql::Result<Option<FieldValue<'a>>> {
                     Ok(Some(FieldValue::value(self)))
                 }
+            }
+            impl <'a> ResolveRef<'a> for $ty {
                 fn resolve_ref(&'a self, _ctx: &Context) -> async_graphql::Result<Option<FieldValue<'a>>> {
                     Ok(Some(FieldValue::value(self.to_owned())))
                 }

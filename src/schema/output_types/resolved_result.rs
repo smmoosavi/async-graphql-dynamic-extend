@@ -12,7 +12,7 @@ struct Foo {
     error: bool,
 }
 
-#[derive(thiserror::Error, Debug, Clone)]
+#[derive(thiserror::Error, Debug)]
 enum MyError {
     #[error("foo error")]
     Foo,

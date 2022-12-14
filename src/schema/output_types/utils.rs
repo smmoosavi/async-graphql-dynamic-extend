@@ -63,12 +63,7 @@ impl<'a, T: ResolveOwned<'a>> ResolveOwned<'a> for Vec<T> {
             let ctx_idx = ctx.with_index(index);
             match item.resolve_owned(&ctx_idx) {
                 Ok(Some(value)) => value,
-                Ok(None) => FieldValue::NULL,
-                Err(err) => {
-                    let server_error = err.into_server_error(ctx_idx.item.pos);
-                    ctx_idx.add_error(server_error);
-                    FieldValue::NULL
-                }
+                _ => FieldValue::NULL,
             }
         });
         Ok(Some(FieldValue::list(items)))
@@ -82,12 +77,7 @@ impl<'a, T: ResolveRef<'a>> ResolveRef<'a> for Vec<T> {
             let ctx_idx = ctx.with_index(index);
             match item.resolve_ref(&ctx_idx) {
                 Ok(Some(value)) => value,
-                Ok(None) => FieldValue::NULL,
-                Err(err) => {
-                    let server_error = err.into_server_error(ctx_idx.item.pos);
-                    ctx_idx.add_error(server_error);
-                    FieldValue::NULL
-                }
+                _ => FieldValue::NULL,
             }
         });
         Ok(Some(FieldValue::list(items)))

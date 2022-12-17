@@ -3,6 +3,7 @@ pub mod expand_object;
 pub mod extend_hello;
 pub mod extend_object;
 pub mod hello;
+pub mod implements_hello;
 pub mod input;
 pub mod output_types;
 pub mod registry;

@@ -1,3 +1,4 @@
+pub mod enums;
 pub mod expand_object;
 pub mod extend_hello;
 pub mod extend_object;

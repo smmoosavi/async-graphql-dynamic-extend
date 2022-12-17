@@ -16,6 +16,10 @@ pub trait ExtendObject {
     type Target: Object;
 }
 
+pub trait Enum {
+    const NAME: &'static str;
+}
+
 pub trait Object {
     const NAME: &'static str;
 }
@@ -47,6 +51,7 @@ impl ExpandObjectContext {
 pub struct Registry {
     types: HashMap<String, dynamic::Object>,
     extend_types: Vec<dynamic::Object>,
+    enums: HashMap<String, dynamic::Enum>,
     input_types: HashMap<String, dynamic::InputObject>,
     pending_expand_objects: VecDeque<PendingExpandObject>,
 }
@@ -56,6 +61,7 @@ impl Registry {
         Self {
             types: Default::default(),
             extend_types: Default::default(),
+            enums: Default::default(),
             input_types: Default::default(),
             pending_expand_objects: Default::default(),
         }
@@ -69,6 +75,11 @@ impl Registry {
     }
     pub fn register_extend_object(mut self, object: dynamic::Object) -> Self {
         self.extend_types.push(object);
+        self
+    }
+
+    pub fn register_enum(mut self, enum_: dynamic::Enum) -> Self {
+        self.enums.insert(enum_.type_name().to_string(), enum_);
         self
     }
 
@@ -144,6 +155,12 @@ impl Registry {
             .into_iter()
             .fold(schema_builder, |schema_builder, (_, object)| {
                 schema_builder.register(object)
+            });
+        let schema_builder = self
+            .enums
+            .into_iter()
+            .fold(schema_builder, |schema_builder, (_, enum_)| {
+                schema_builder.register(enum_)
             });
         self.extend_types
             .into_iter()

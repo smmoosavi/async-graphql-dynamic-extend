@@ -17,22 +17,25 @@ struct Foo;
 
 impl Foo {
     // by object
-    async fn resolve_by_object(&self, input: BarInput) -> String {
+    async fn resolve_by_object(&self, input: &BarInput) -> String {
         format!("bar-input.bar: {}", input.bar)
     }
-    async fn resolve_by_string(&self, input: String) -> String {
+    async fn resolve_by_string(&self, input: &String) -> String {
         format!("string: {}", input)
     }
-    async fn resolve_by_int(&self, input: i32) -> String {
+    async fn resolve_by_str(&self, input: &str) -> String {
+        format!("str: {}", input)
+    }
+    async fn resolve_by_int(&self, input: &i32) -> String {
         format!("i32: {}", input)
     }
-    async fn resolve_by_float(&self, input: f32) -> String {
+    async fn resolve_by_float(&self, input: &f32) -> String {
         format!("f32: {}", input)
     }
-    async fn resolve_by_bool(&self, input: bool) -> String {
+    async fn resolve_by_bool(&self, input: &bool) -> String {
         format!("bool: {}", input)
     }
-    async fn resolve_by_id(&self, input: ID) -> String {
+    async fn resolve_by_id(&self, input: &ID) -> String {
         format!("id: {}", input.0)
     }
 }
@@ -122,7 +125,7 @@ impl Register for Foo {
                 dynamic::FieldFuture::new(async move {
                     let parent = ctx.parent_value.try_downcast_ref::<Self>()?;
                     let arg_0 = ctx.args.try_get("input")?.deserialize()?;
-                    let value = parent.resolve_by_object(arg_0).await;
+                    let value = parent.resolve_by_object(&arg_0).await;
                     ResolveOwned::resolve_owned(value, &ctx)
                 })
             });
@@ -142,7 +145,7 @@ impl Register for Foo {
                 dynamic::FieldFuture::new(async move {
                     let parent = ctx.parent_value.try_downcast_ref::<Self>()?;
                     let arg_0 = ctx.args.try_get("input")?.deserialize()?;
-                    let value = parent.resolve_by_string(arg_0).await;
+                    let value = parent.resolve_by_string(&arg_0).await;
                     ResolveOwned::resolve_owned(value, &ctx)
                 })
             },
@@ -153,6 +156,25 @@ impl Register for Foo {
         ));
         let object_type = object_type.field(by_string_field);
 
+        // define by_str field
+        let by_str_field = dynamic::Field::new(
+            "by_str",
+            dynamic::TypeRef::named_nn(dynamic::TypeRef::STRING),
+            |ctx| {
+                dynamic::FieldFuture::new(async move {
+                    let parent = ctx.parent_value.try_downcast_ref::<Self>()?;
+                    let arg_0: String = ctx.args.try_get("input")?.deserialize()?;
+                    let value = parent.resolve_by_str(&arg_0).await;
+                    ResolveOwned::resolve_owned(value, &ctx)
+                })
+            },
+        );
+        let by_str_field = by_str_field.argument(dynamic::InputValue::new(
+            "input",
+            dynamic::TypeRef::named_nn(dynamic::TypeRef::STRING),
+        ));
+        let object_type = object_type.field(by_str_field);
+
         // define by_int field
 
         let by_int_field = dynamic::Field::new(
@@ -162,7 +184,7 @@ impl Register for Foo {
                 dynamic::FieldFuture::new(async move {
                     let parent = ctx.parent_value.try_downcast_ref::<Self>()?;
                     let arg_0 = ctx.args.try_get("input")?.deserialize()?;
-                    let value = parent.resolve_by_int(arg_0).await;
+                    let value = parent.resolve_by_int(&arg_0).await;
                     ResolveOwned::resolve_owned(value, &ctx)
                 })
             },
@@ -184,7 +206,7 @@ impl Register for Foo {
                 dynamic::FieldFuture::new(async move {
                     let parent = ctx.parent_value.try_downcast_ref::<Self>()?;
                     let arg_0 = ctx.args.try_get("input")?.deserialize()?;
-                    let value = parent.resolve_by_float(arg_0).await;
+                    let value = parent.resolve_by_float(&arg_0).await;
                     ResolveOwned::resolve_owned(value, &ctx)
                 })
             },
@@ -206,7 +228,7 @@ impl Register for Foo {
                 dynamic::FieldFuture::new(async move {
                     let parent = ctx.parent_value.try_downcast_ref::<Self>()?;
                     let arg_0 = ctx.args.try_get("input")?.deserialize()?;
-                    let value = parent.resolve_by_bool(arg_0).await;
+                    let value = parent.resolve_by_bool(&arg_0).await;
                     ResolveOwned::resolve_owned(value, &ctx)
                 })
             },
@@ -228,7 +250,7 @@ impl Register for Foo {
                 dynamic::FieldFuture::new(async move {
                     let parent = ctx.parent_value.try_downcast_ref::<Self>()?;
                     let arg_0 = ctx.args.try_get("input")?.deserialize()?;
-                    let value = parent.resolve_by_id(arg_0).await;
+                    let value = parent.resolve_by_id(&arg_0).await;
                     ResolveOwned::resolve_owned(value, &ctx)
                 })
             },
@@ -275,6 +297,7 @@ mod tests {
                     type Foo {
                       by_object(input: BarInput!): String!
                       by_string(input: String!): String!
+                      by_str(input: String!): String!
                       by_int(input: Int!): Int!
                       by_float(input: Float!): Float!
                       by_bool(input: Boolean!): Boolean!
@@ -325,6 +348,7 @@ mod tests {
             query {
                 foo {
                     by_string(input: "world")
+                    by_str(input: "world")
                     by_id(input: "world")
                 }
             }
@@ -339,6 +363,7 @@ mod tests {
             serde_json::json!({
                 "foo": {
                     "by_string": "string: world",
+                    "by_str": "str: world",
                     "by_id": "id: world"
                 }
             }),

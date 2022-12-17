@@ -73,7 +73,8 @@ impl Registry {
     }
 
     pub fn register_input_object(mut self, object: dynamic::InputObject) -> Self {
-        self.input_types.insert(object.type_name().to_string(), object);
+        self.input_types
+            .insert(object.type_name().to_string(), object);
         self
     }
 

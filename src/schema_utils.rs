@@ -1,6 +1,5 @@
 use regex::Regex;
 
-#[cfg(test)]
 pub fn normalize_schema(sdl: &str) -> String {
     let sdl = Regex::new(r"\s+")
         .unwrap()

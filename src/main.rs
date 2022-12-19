@@ -1,4 +1,5 @@
 mod schema;
+#[cfg(test)]
 mod schema_utils;
 
 #[tokio::main]

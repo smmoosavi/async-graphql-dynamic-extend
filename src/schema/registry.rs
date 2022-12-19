@@ -24,6 +24,12 @@ pub trait Object {
     const NAME: &'static str;
 }
 
+pub trait Interface {
+    const NAME: &'static str;
+
+    fn register_fields(interface: dynamic::Interface) -> dynamic::Interface;
+}
+
 pub trait InputObject {
     const NAME: &'static str;
 }
@@ -52,6 +58,7 @@ pub struct Registry {
     types: HashMap<String, dynamic::Object>,
     extend_types: Vec<dynamic::Object>,
     enums: HashMap<String, dynamic::Enum>,
+    interfaces: HashMap<String, dynamic::Interface>,
     input_types: HashMap<String, dynamic::InputObject>,
     pending_expand_objects: VecDeque<PendingExpandObject>,
 }
@@ -62,6 +69,7 @@ impl Registry {
             types: Default::default(),
             extend_types: Default::default(),
             enums: Default::default(),
+            interfaces: Default::default(),
             input_types: Default::default(),
             pending_expand_objects: Default::default(),
         }
@@ -80,6 +88,12 @@ impl Registry {
 
     pub fn register_enum(mut self, enum_: dynamic::Enum) -> Self {
         self.enums.insert(enum_.type_name().to_string(), enum_);
+        self
+    }
+
+    pub fn register_interface(mut self, interface: dynamic::Interface) -> Self {
+        self.interfaces
+            .insert(interface.type_name().to_string(), interface);
         self
     }
 
@@ -145,6 +159,18 @@ impl Registry {
     pub fn build_schema(mut self, schema_builder: SchemaBuilder) -> SchemaBuilder {
         self.apply_pending();
         let schema_builder = self
+            .enums
+            .into_iter()
+            .fold(schema_builder, |schema_builder, (_, enum_)| {
+                schema_builder.register(enum_)
+            });
+        let schema_builder = self
+            .interfaces
+            .into_iter()
+            .fold(schema_builder, |schema_builder, (_, enum_)| {
+                schema_builder.register(enum_)
+            });
+        let schema_builder = self
             .input_types
             .into_iter()
             .fold(schema_builder, |schema_builder, (_, object)| {
@@ -155,12 +181,6 @@ impl Registry {
             .into_iter()
             .fold(schema_builder, |schema_builder, (_, object)| {
                 schema_builder.register(object)
-            });
-        let schema_builder = self
-            .enums
-            .into_iter()
-            .fold(schema_builder, |schema_builder, (_, enum_)| {
-                schema_builder.register(enum_)
             });
         self.extend_types
             .into_iter()

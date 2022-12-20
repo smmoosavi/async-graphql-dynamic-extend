@@ -9,3 +9,4 @@ pub mod interface;
 pub mod output_types;
 pub mod registry;
 pub mod simple_object;
+pub mod union;

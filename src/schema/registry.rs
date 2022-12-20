@@ -24,6 +24,10 @@ pub trait Object {
     const NAME: &'static str;
 }
 
+pub trait Union {
+    const NAME: &'static str;
+}
+
 pub trait Interface {
     const NAME: &'static str;
 
@@ -58,6 +62,7 @@ pub struct Registry {
     types: HashMap<String, dynamic::Object>,
     extend_types: Vec<dynamic::Object>,
     enums: HashMap<String, dynamic::Enum>,
+    unions: HashMap<String, dynamic::Union>,
     interfaces: HashMap<String, dynamic::Interface>,
     input_types: HashMap<String, dynamic::InputObject>,
     pending_expand_objects: VecDeque<PendingExpandObject>,
@@ -69,6 +74,7 @@ impl Registry {
             types: Default::default(),
             extend_types: Default::default(),
             enums: Default::default(),
+            unions: Default::default(),
             interfaces: Default::default(),
             input_types: Default::default(),
             pending_expand_objects: Default::default(),
@@ -94,6 +100,11 @@ impl Registry {
     pub fn register_interface(mut self, interface: dynamic::Interface) -> Self {
         self.interfaces
             .insert(interface.type_name().to_string(), interface);
+        self
+    }
+
+    pub fn register_union(mut self, union: dynamic::Union) -> Self {
+        self.unions.insert(union.type_name().to_string(), union);
         self
     }
 
@@ -163,6 +174,12 @@ impl Registry {
             .into_iter()
             .fold(schema_builder, |schema_builder, (_, enum_)| {
                 schema_builder.register(enum_)
+            });
+        let schema_builder = self
+            .unions
+            .into_iter()
+            .fold(schema_builder, |schema_builder, (_, union)| {
+                schema_builder.register(union)
             });
         let schema_builder = self
             .interfaces

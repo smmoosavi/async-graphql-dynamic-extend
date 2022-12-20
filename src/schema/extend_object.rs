@@ -170,7 +170,7 @@ impl Register for User {
                     Ok(parent
                         .resolve_avatar()
                         .as_ref()
-                        .map(FieldValue::borrowed_any))
+                        .map(|v| FieldValue::borrowed_any(v)))
                 })
             });
         let object_type = object_type.field(avatar_field);

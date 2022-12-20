@@ -9,7 +9,7 @@ pub trait ResolveRef<'a> {
     fn resolve_ref(&'a self, ctx: &Context) -> async_graphql::Result<Option<FieldValue<'a>>>;
 }
 
-impl<'a, T: ResolveOwned<'a> + Sync> ResolveOwned<'a> for Option<T> {
+impl<'a, T: ResolveOwned<'a>> ResolveOwned<'a> for Option<T> {
     #[inline]
     fn resolve_owned(self, ctx: &Context) -> async_graphql::Result<Option<FieldValue<'a>>> {
         match self {
@@ -19,7 +19,7 @@ impl<'a, T: ResolveOwned<'a> + Sync> ResolveOwned<'a> for Option<T> {
     }
 }
 
-impl<'a, T: ResolveRef<'a> + Sync> ResolveRef<'a> for Option<T> {
+impl<'a, T: ResolveRef<'a>> ResolveRef<'a> for Option<T> {
     fn resolve_ref(&'a self, ctx: &Context) -> async_graphql::Result<Option<FieldValue<'a>>> {
         match self {
             None => Ok(None),
@@ -30,8 +30,8 @@ impl<'a, T: ResolveRef<'a> + Sync> ResolveRef<'a> for Option<T> {
 
 impl<'a, T, E> ResolveOwned<'a> for Result<T, E>
 where
-    T: ResolveOwned<'a> + Sync,
-    E: Into<async_graphql::Error> + Send + Sync,
+    T: ResolveOwned<'a>,
+    E: Into<async_graphql::Error>,
 {
     #[inline]
     fn resolve_owned(self, ctx: &Context) -> async_graphql::Result<Option<FieldValue<'a>>> {
@@ -44,8 +44,8 @@ where
 
 impl<'a, T, E> ResolveRef<'a> for Result<T, E>
 where
-    T: ResolveRef<'a> + Sync,
-    E: Into<async_graphql::Error> + Send + Sync + Clone,
+    T: ResolveRef<'a>,
+    E: Into<async_graphql::Error> + Clone,
 {
     #[inline]
     fn resolve_ref(&'a self, ctx: &Context) -> async_graphql::Result<Option<FieldValue<'a>>> {

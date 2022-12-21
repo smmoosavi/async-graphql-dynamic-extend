@@ -38,6 +38,10 @@ pub trait InputObject {
     const NAME: &'static str;
 }
 
+pub trait Mutation: Object {
+    type Root;
+}
+
 pub struct ExpandObjectContext {
     definition: String,
     field: String,

@@ -6,6 +6,7 @@ pub mod hello;
 pub mod implements_hello;
 pub mod input;
 pub mod interface;
+pub mod mutation;
 pub mod output_types;
 pub mod registry;
 pub mod simple_object;

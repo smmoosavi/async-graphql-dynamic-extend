@@ -1,5 +1,6 @@
 pub mod enums;
 pub mod expand_object;
+pub mod expand_object_with_self;
 pub mod extend_hello;
 pub mod extend_object;
 pub mod hello;

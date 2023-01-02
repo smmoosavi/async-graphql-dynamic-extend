@@ -8,6 +8,7 @@ pub mod implements_hello;
 pub mod input;
 pub mod interface;
 pub mod mutation;
+pub mod nullable_array;
 pub mod output_types;
 pub mod registry;
 pub mod simple_object;

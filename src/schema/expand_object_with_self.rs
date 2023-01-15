@@ -24,7 +24,7 @@ impl<'a> From<&'a Query> for MeQuery<'a> {
     }
 }
 
-impl ExpandObject for MeQuery<'_> {
+impl<'a> ExpandObject for MeQuery<'a> {
     type Target = Query;
 }
 
@@ -36,7 +36,7 @@ impl<'a> MeQuery<'a> {
 
 impl<'a> MeQuery<'a> {
     // mark Query as Target
-    async fn resolve_me(self, _ctx: &Context<'_>) -> &'a User {
+    async fn resolve_me(&self, _ctx: &Context<'_>) -> &'a User {
         &self.parent().me
     }
 }
@@ -61,7 +61,7 @@ impl Register for Query {
     }
 }
 
-impl Register for MeQuery<'_> {
+impl<'a> Register for MeQuery<'a> {
     fn register(registry: Registry) -> Registry {
         // define me field
         let me_field = dynamic::Field::new("me", dynamic::TypeRef::named(User::NAME), |ctx| {
@@ -70,9 +70,10 @@ impl Register for MeQuery<'_> {
                 // special case because Query is marked as root
                 let parent = ctx
                     .parent_value
-                    .try_downcast_ref::<<Self as ExpandObject>::Target>()?;
+                    .try_downcast_ref::<<Self as ExpandObject>::Target>()?
+                    .into();
 
-                let value = MeQuery::resolve_me(parent.into(), &ctx).await;
+                let value = MeQuery::resolve_me(&parent, &ctx).await;
                 Ok(Some(FieldValue::borrowed_any(value)))
             })
         });

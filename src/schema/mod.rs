@@ -13,3 +13,4 @@ pub mod output_types;
 pub mod registry;
 pub mod simple_object;
 pub mod union;
+pub mod union_with_interface;

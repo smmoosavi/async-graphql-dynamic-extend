@@ -78,6 +78,16 @@ pub fn create_schema() -> Schema {
             Ok(Some(query.pet.to_field_value()))
         })
     }));
+    let query = query.field(Field::new("dog", TypeRef::named("Dog"), |ctx| {
+        FieldFuture::new(async move {
+            let query = ctx.parent_value.try_downcast_ref::<Query>()?;
+            let dog = match &query.pet {
+                Animal::Dog(dog) => dog,
+                _ => return Ok(None),
+            };
+            Ok(Some(FieldValue::borrowed_any(dog)))
+        })
+    }));
 
     let schema = Schema::build(query.type_name(), None, None);
     let schema = schema
@@ -124,6 +134,7 @@ interface Named {
 
 type Query {
 	pet: Animal!
+	dog: Dog
 }
 
 type Snake {
@@ -143,7 +154,16 @@ schema {
         let schema = create_schema();
         let query = r#"
             query {
-                dog: pet {
+                dog {
+                    __dog_typename: __typename
+                    name
+                    power
+                    ... on Named {
+                        __named_typename: __typename
+                        named_name: name
+                    }
+                }
+                pet {
                     ... on Dog {
                         __dog_typename: __typename
                         name
@@ -179,6 +199,13 @@ schema {
             res.data.into_json().unwrap(),
             serde_json::json!({
                 "dog": {
+                    "__dog_typename": "Dog",
+                    "name": "dog",
+                    "power": 100,
+                    "__named_typename": "Dog",
+                    "named_name": "dog"
+                },
+                "pet": {
                     "__dog_typename": "Dog",
                     "name": "dog",
                     "power": 100

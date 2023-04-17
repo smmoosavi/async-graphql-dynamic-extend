@@ -7,6 +7,7 @@ pub mod hello;
 pub mod implements_hello;
 pub mod input;
 pub mod interface;
+pub mod life_time;
 pub mod mutation;
 pub mod nullable_array;
 pub mod output_types;
